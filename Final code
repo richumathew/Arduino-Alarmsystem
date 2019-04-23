@@ -1,0 +1,196 @@
+//import librarys
+#include <Password.h>
+#include <Servo.h>
+#include <LiquidCrystal.h>
+#include <Keypad.h>
+
+ #define buzzer 31
+ #define echoPin 9
+ #define trigPin 10
+ Servo servo1;
+ 
+ int servoPin=43;
+ int Greenled = 50;
+ int Redled = 52;
+ 
+ long duration;
+ int Distance, initialDistance, currentDistance;
+ int ms = millis(); //to refresh the LCD
+ 
+ int countdown=9;
+ int countdown2 = 5;
+ 
+  String password="1234";
+  String tempPassword;
+  
+ boolean alarmActivated = false;
+ boolean activateAlarm = false;
+ boolean activated = false;
+ boolean EnterPassword;
+ boolean activateDoorlocking = false;
+ boolean doorlockActivate = false;
+ 
+ char pressedButtons;
+ const byte ROWS = 4;
+ const byte COLS = 4;
+ //define the buttons on the keypad
+ char Buttons[ROWS][COLS] = {
+   {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+  };
+
+  byte ROWPins[ROWS] = {30, 29, 28, 27};
+  byte COLPins[COLS] = {26, 25, 24, 23};
+  Keypad keypad1 = Keypad (makeKeymap(Buttons), ROWPins, COLPins, ROWS, COLS);
+  LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+int l = 0;
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(Redled, OUTPUT);
+  pinMode(Greenled, OUTPUT);
+  digitalWrite(Greenled, HIGH);
+  digitalWrite(Redled, HIGH); 
+  servo1.attach(servoPin);
+  pinMode(buzzer, OUTPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  lcd.begin(16,2);
+  
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+if(activateAlarm){
+  lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Alarm Activating");
+    while (countdown != 0) {
+      digitalWrite(Greenled,HIGH);
+      digitalWrite(Redled, HIGH);
+      delay(1000);
+      digitalWrite(Greenled,LOW);
+      digitalWrite(Redled, LOW);
+      lcd.setCursor(8,1);
+      lcd.print(countdown);
+      countdown--;
+      tone(buzzer, 700, 100);
+      delay(1000);
+    }
+    digitalWrite(Redled,HIGH);
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Alarm Activated!");
+    initialDistance = getDistance();
+    activateAlarm = false;
+    alarmActivated = true;
+  }
+   if(alarmActivated == true){
+       currentDistance = getDistance()+ 10; 
+      if ( currentDistance < initialDistance) {
+        tone(buzzer, 1000); // Send 1KHz sound signal 
+        lcd.clear();
+        enterPassword();
+        }
+    }
+    if (!alarmActivated) {
+    if (ms >= l ){
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("A - Activate");
+      digitalWrite(Greenled, HIGH);
+      l = ms+1000;
+      
+    }
+       pressedButtons = keypad1.getKey();
+     if (pressedButtons =='A'){        //If A is pressed, activate the alarm
+      tone(buzzer, 1000, 200);
+      activateAlarm = true;            
+    }
+}
+    if(alarmActivated == true){
+    Servo1();
+    }
+}
+
+
+void enterPassword() {
+  int k=6;
+  tempPassword = "";
+  activated = true;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  digitalWrite(Redled, HIGH);
+  lcd.print(" ALARM SETOFF ");
+  lcd.setCursor(0,1);
+  lcd.print("ENTER");
+      while(activated) {
+      pressedButtons = keypad1.getKey();
+      if (pressedButtons != NO_KEY){
+        if (pressedButtons == '0' || pressedButtons == '1' || pressedButtons == '2' || pressedButtons == '3' ||
+            pressedButtons == '4' || pressedButtons == '5' || pressedButtons == '6' || pressedButtons == '7' ||
+            pressedButtons == '8' || pressedButtons == '9' ){
+          tempPassword += pressedButtons;
+          lcd.setCursor(k,1);
+          lcd.print("*");
+          k++;
+        }
+      }
+   
+      if ( pressedButtons == '*') {
+        if ( tempPassword == password ) {
+      activated = false;
+      alarmActivated = false;   
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("A - Activate");
+      lcd.setCursor(0,1);
+      countdown = 9;
+      countdown--;
+      noTone(buzzer);
+      l = ms+1000; 
+      digitalWrite(Greenled, HIGH);
+      digitalWrite(Redled, LOW);
+      servo1.write(150);
+      }
+       if(tempPassword != password){
+        tempPassword="";
+        k=6;
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print(" ENTER AGAIN ");
+        delay(5000);
+        lcd.clear();
+        lcd.setCursor(0,1);
+        lcd.print("Enter");
+        tone(buzzer, 300, 200);
+       
+        
+        }
+    }
+  }
+}
+
+void Servo1(){
+  delay(1000);
+  servo1.write(-60);
+  }
+
+
+long getDistance(){
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave 
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  Distance = duration*0.034/2;
+  return Distance;
+}
